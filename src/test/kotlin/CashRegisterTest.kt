@@ -70,4 +70,18 @@ class CashRegisterTest {
             drawer
         )
     }
+
+    @Test
+    fun testChangeNotAvailable() {
+        val register = CashRegister(Change())
+        val price = 375L
+        val amountPaid = Change().add(
+            Coin.TWO_EURO,
+            2
+        )
+
+        assertFailsWith<CashRegister.TransactionException> {
+            register.performTransaction(price, amountPaid)
+        }
+    }
 }

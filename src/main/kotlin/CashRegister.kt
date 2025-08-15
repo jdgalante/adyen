@@ -49,6 +49,19 @@ class CashRegister(private val change: Change) {
                 break
             }
         }
+
+        // if remainingChange is > 0 exact change is not possible given the available bills/coins in the register.
+        // Remove the paid amount from the register and add the change back to the register.
+        if (remainingAmount > 0L) {
+            for (element in amountPaid.getElements()) {
+                registerChange.remove(element, amountPaid.getCount(element))
+            }
+            for (element in resultChange.getElements()) {
+                registerChange.add(element, resultChange.getCount(element))
+            }
+            throw TransactionException("exact change not possible")
+        }
+
         return resultChange
     }
 
