@@ -72,16 +72,78 @@ class CashRegisterTest {
     }
 
     @Test
-    fun testChangeNotAvailable() {
-        val register = CashRegister(Change())
-        val price = 375L
-        val amountPaid = Change().add(
-            Coin.TWO_EURO,
-            2
+    fun testChangeNotAvailableAndRollback() {
+        val drawer = Change().add(Coin.FIFTY_CENT, 1).add(Coin.TWENTY_CENT, 1)
+        val register = CashRegister(drawer)
+
+        // Successful transaction
+        val change = register.performTransaction(
+            250L,
+            Change().add(Coin.TWO_EURO, 1).add(Coin.ONE_EURO, 1)
+        )
+        assertEquals(Change().add(Coin.FIFTY_CENT, 1), change)
+
+        assertEquals(
+            Change().add(Coin.TWO_EURO, 1).add(Coin.ONE_EURO, 1).add(Coin.TWENTY_CENT, 1),
+            drawer
         )
 
+        // Insufficient change (merged from old testChangeNotAvailable)
         assertFailsWith<CashRegister.TransactionException> {
-            register.performTransaction(price, amountPaid)
+            register.performTransaction(170L, Change().add(Coin.TWO_EURO, 1))
+        }
+        assertEquals(
+            Change().add(Coin.TWO_EURO, 1).add(Coin.ONE_EURO, 1).add(Coin.TWENTY_CENT, 1),
+            drawer
+        )
+    }
+
+    @Test
+    fun testMinimalChange() {
+        val drawer = Change()
+            .add(Bill.FIFTY_EURO, 1)
+            .add(Bill.TWENTY_EURO, 2)
+            .add(Coin.FIFTY_CENT, 3)
+            .add(Coin.TEN_CENT, 5)
+        val register = CashRegister(drawer)
+
+        val change = register.performTransaction(
+            129_50L,
+            Change().add(Bill.TWO_HUNDRED_EURO, 1)
+        )
+        assertEquals(
+            Change().add(Bill.FIFTY_EURO, 1).add(Bill.TWENTY_EURO, 1).add(Coin.FIFTY_CENT, 1),
+            change
+        )
+    }
+
+    @Test
+    fun testMultipleTransactions() {
+        // Tests multiple transactions to test register keeping track of balance
+        val drawer = Change()
+            .add(Coin.ONE_EURO, 2)
+            .add(Coin.FIFTY_CENT, 2)
+            .add(Coin.TWENTY_CENT, 1)
+            .add(Coin.TEN_CENT, 1)
+        val register = CashRegister(drawer)
+
+        val change1 = register.performTransaction(
+            250L,
+            Change().add(Coin.TWO_EURO, 1).add(Coin.FIFTY_CENT, 2)
+        )
+        assertEquals(Change().add(Coin.FIFTY_CENT, 1), change1)
+
+        val change2 = register.performTransaction(
+            290L,
+            Change().add(Coin.TWO_EURO, 2)
+        )
+        assertEquals(Change().add(Coin.ONE_EURO, 1).add(Coin.TEN_CENT, 1), change2)
+
+        assertFailsWith<CashRegister.TransactionException> {
+            register.performTransaction(
+                375L,
+                Change().add(Coin.TWO_EURO, 2)
+            )
         }
     }
 }
