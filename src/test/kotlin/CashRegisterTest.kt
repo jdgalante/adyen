@@ -48,4 +48,26 @@ class CashRegisterTest {
             register.performTransaction(price, amountPaid)
         }
     }
+
+    @Test
+    fun testExactPaymentDrawerUpdates() {
+        val drawer = Change()
+            .add(Coin.FIFTY_CENT, 1)
+            .add(Coin.TWENTY_CENT, 1)
+        val register = CashRegister(drawer)
+        val price = 200L
+        val amountPaid = Change().add(Coin.TWO_EURO, 1)
+
+        val actualChange = register.performTransaction(price, amountPaid)
+
+        assertEquals(Change.none(), actualChange)
+
+        assertEquals(
+            Change()
+                .add(Coin.FIFTY_CENT, 1)
+                .add(Coin.TWENTY_CENT, 1)
+                .add(Coin.TWO_EURO, 1),
+            drawer
+        )
+    }
 }
